@@ -2,6 +2,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 import os
 import stat
+from ftplib import FTP
 
 class FileSystemObject(ABC):
     def __init__(self, name: str, path: str, created_at: datetime, owner: str, 
@@ -91,7 +92,14 @@ class Directory(FileSystemObject):
             f"Directory Size: {self.size}\n"
         )
         return info 
-    
+class FTPFile(File):
+    def __init__(self, name, path, created_at, owner, group, business_group, permissions, size, type):
+        super().__init__(name, path, created_at, owner, group, business_group, permissions, size, type)
+
+class FTPDirectory(Directory):
+    def __init__(self, name, path, created_at, owner, group, permissions, size):
+        super().__init__(name, path, created_at, owner, group, permissions, size)
+ 
 class FSOFactory:
     @classmethod
     def create_file(cls, path: str) -> FileSystemObject:
@@ -120,6 +128,53 @@ class FSOFactory:
             permissions=cls._get_permissions(stats),
             size=stats.st_size
         )
+    
+    @classmethod
+    def create_ftpfile(cls, ftp: FTP, path: str) -> FileSystemObject:
+        try:
+            ftp.voidcmd('TYPE I')
+            # Get file size
+            size = ftp.size(path)
+            # Get modified time
+            mdtm = ftp.sendcmd(f"MDTM {path}")[4:].strip()
+            created_at = datetime.strptime(mdtm, "%Y%m%d%H%M%S")
+            
+            # Creating a FileSystemObject
+            return File(
+                name=cls._get_file_name(path),
+                path=path,
+                created_at=created_at,
+                owner='ftpuser',  # FTP server owner might not be retrievable
+                group='ftpgroup',  # FTP server group might not be retrievable
+                business_group=cls._get_business_group(path),
+                permissions='-rw-r--r--',  # Default permissions for simplicity
+                size=size,
+                type=cls._get_file_type(path)
+            )
+        except Exception as e:
+            print(f"Error creating file object: {e}")
+            return None
+    
+    @classmethod
+    def create_ftpdir(cls, ftp: FTP, path: str) -> FileSystemObject:
+        try:
+            # Directories may not have a size or mdtm, default values used
+            created_at = datetime.now()  # Placeholder for created_at
+            size = 0  # Placeholder for directory size
+
+            return Directory(
+                name=os.path.basename(path),
+                path=path,
+                created_at=created_at,
+                owner='ftpuser',  # FTP server owner might not be retrievable
+                group='ftpgroup',  # FTP server group might not be retrievable
+                permissions='drwxr-xr-x',  # Default permissions for simplicity
+                size=size
+            )
+        except Exception as e:
+            print(f"Error creating directory object: {e}")
+            return None
+
     
     @classmethod
     def _get_business_group(cls, path: str) -> str:
