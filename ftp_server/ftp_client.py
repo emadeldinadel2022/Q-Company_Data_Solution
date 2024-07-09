@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 import tempfile
 import os
 import time
+import pytz
+
 
 def ftp_connect(max_retries=5, retry_delay=2):
     print("Waiting for FTP server to start...")
@@ -33,58 +35,79 @@ def ftp_connect(max_retries=5, retry_delay=2):
 def is_file_recent(ftp: FTP, file_path: str, cutoff_time: datetime) -> bool:
     try:
         mdtm = ftp.sendcmd(f"MDTM {file_path}")[4:].strip()
-        created_at = datetime.strptime(mdtm, "%Y%m%d%H%M%S")
+        utc_time = datetime.strptime(mdtm, "%Y%m%d%H%M%S")
+        utc_time = utc_time.replace(tzinfo=pytz.UTC)  # Make the datetime object timezone-aware
+
+        # Get the local timezone
+        local_tz = datetime.now(pytz.utc).astimezone().tzinfo
+
+        # Convert UTC time to local time
+        created_at = utc_time.astimezone(local_tz)
+
+        # Ensure cutoff_time is timezone-aware
+        if cutoff_time.tzinfo is None:
+            cutoff_time = cutoff_time.replace(tzinfo=local_tz)
+
         print(f"File: {file_path}, Created at: {created_at}, Cutoff: {cutoff_time}")
+            
         return created_at > cutoff_time
+    
     except Exception as e:
         print(f"Error checking file recency for {file_path}: {str(e)}")
         return False
-
-def download_and_process_recent_files(ftp):
+def download_and_process_recent_files(ftp: FTP):
     groups = ["group1", "group2", "group3", "group4", "group5", "group6"]
-    all_data = []
-    cutoff_time = datetime.now() - timedelta(hours=5)
+    merged_df = pd.DataFrame()
+    cutoff_time = datetime.now() - timedelta(hours=1)
+    current_group = None
 
     for group in groups:
         try:
             group_path = f'/q_company_data/{group}'
             ftp.cwd(group_path)
             files = ftp.nlst()
-            
 
-            recent_files = [file for file in files if is_file_recent(ftp, group_path+'/'+file, cutoff_time)]
-            recent_files.sort(key=lambda x: ftp.voidcmd(f"MDTM {x}"), reverse=True)
-            recent_files = recent_files[:3]
-            
+            recent_files = [file for file in files if is_file_recent(ftp, group_path + '/' + file, cutoff_time)]
+            #recent_files.sort(key=lambda x: ftp.voidcmd(f"MDTM {x}"), reverse=True)
+            #recent_files = recent_files[:3]
 
-            
+            extracted_data = {}
             for file in recent_files:
                 path = ftp.pwd() + "/" + file
                 fso = FSOFactory.create_ftpfile(ftp, path)
-                
+
                 # Download file to a temporary location
                 file_content = io.BytesIO()
                 ftp.retrbinary(f"RETR {file}", file_content.write)
                 file_content.seek(0)  # Reset file pointer to the beginning
-                
+
                 # Process the file
                 parser = ParserFactory.get_parser(fso.type)
                 data = parser.parse(file_content)
-                
-                # Add group information
-                data["group"] = group
-                
-                print(data)
-                all_data.append(data)
-                
-            
+
+                # Store the extracted data
+                splited_file_name = file.split('.')[0]
+                updated_file_name = splited_file_name.split('_')[0] if 'branches' in file else '_'.join(splited_file_name.split('_')[0:2])
+                extracted_data[updated_file_name] = data
+
+            # Merge the extracted data
+            if 'branches' in extracted_data and 'sales_agents' in extracted_data and 'sales_transactions' in extracted_data:
+                branches = extracted_data['branches']
+                sales_agents = extracted_data['sales_agents']
+                sales_transactions = extracted_data['sales_transactions']
+
+                sales_agents.rename(columns={'sales_person_id': 'sales_agent_id'}, inplace=True)
+                merged_df = pd.merge(sales_transactions, sales_agents, on='sales_agent_id', how='left')
+                merged_df = pd.merge(merged_df, branches, on='branch_id', how='left')
+                merged_df['group'] = group
+                current_group = group
+
         except Exception as e:
             print(f"An error occurred: {str(e)} ", group)
-        
+
         ftp.cwd("../..")
 
-
-    return pd.concat(all_data, ignore_index=True) if all_data else pd.DataFrame()
+    return merged_df, current_group
     
 def save_as_parquet(df, file_path):
     df.to_parquet(file_path, index=False)

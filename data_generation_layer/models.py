@@ -1,7 +1,9 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import stat
+import pytz
+import time
 from ftplib import FTP
 
 class FileSystemObject(ABC):
@@ -136,8 +138,17 @@ class FSOFactory:
             # Get file size
             size = ftp.size(path)
             # Get modified time
+            
             mdtm = ftp.sendcmd(f"MDTM {path}")[4:].strip()
-            created_at = datetime.strptime(mdtm, "%Y%m%d%H%M%S")
+            utc_time = datetime.strptime(mdtm, "%Y%m%d%H%M%S")
+            utc_time = utc_time.replace(tzinfo=pytz.UTC)  # Make the datetime object timezone-aware
+
+            # Get the local timezone
+            local_tz = datetime.now(pytz.utc).astimezone().tzinfo
+
+            # Convert UTC time to local time
+            created_at = utc_time.astimezone(local_tz)
+
             
             # Creating a FileSystemObject
             return File(

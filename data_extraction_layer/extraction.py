@@ -25,8 +25,8 @@ class FileExtractor:
     def set_extraction_timestamp(self, timestamp: datetime) -> None:
         self.__extraction_timestamp = timestamp
 
-    def extract(self, extraction_strategy: Optional[Callable[[pd.DataFrame], pd.DataFrame]] = None) -> None:
-        data = self.parser.parse(self.fso_object.path)
+    def extract(self, file_path, extraction_strategy: Optional[Callable[[pd.DataFrame], pd.DataFrame]] = None) -> None:
+        data = self.parser.parse(file_path)
 
         if extraction_strategy is None:
             self.data = data
