@@ -1,0 +1,42 @@
+---> Handling the error of the large parquet file
+---> Handling the name of the parquet file under hdfs
+
+# Cleansing Layer execution
+1. Reading the data from raw layer under hadoop 
+2. Rename some columns
+3. Remove blanck columns
+4. Mapping orders to discount
+5. Merge customer name
+6. Validate email
+7. Validate transaction id
+8. Validate unit price
+9. Rearrange columns
+10. Splitting to online and offline transactions
+11. Convert the id of branch and sales_agent to long (offline)
+12. Convert the transcation_date to date type (online)
+13. Splitting the shipping address (online)
+14. Mapping the shipping address state (online)
+15. Generate row index for online and offline 
+14. Store the cleaned data in the cleaned layer with partitioned online and offline and each one is have 
+its partitions
+
+# Transformation Layer execution
+1. Read online and offline data with inforced schema
+2. Calculate the total price for each one
+3. Merge online and offline into one file
+4. Store under the Transformed Denormalized Layer with partitioned for each one with the transcation_date
+
+# Modeling Layer execution
+1. Build the dimension tables date, branch, sales_agent, customer, products, location
+2. Build the facts tables for online and offline, and all data 
+3. Generate surrogate keys for each dimensions and Mapping the schema
+4. Store them under hive tables
+5. Build some batch views for online and offline and merged  uner hive tables
+6. Build the B2B team csv files under the local system every day or end of day
+7. Build the Hive data warehouse table
+
+# Automation with Airflow or cronjobs
+
+# Metabase and BI Layer
+
+# Metadata Layer 

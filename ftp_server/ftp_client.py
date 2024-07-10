@@ -4,10 +4,9 @@ from ftplib import FTP
 from data_generation_layer.models import FSOFactory
 from data_extraction_layer.parsers import ParserFactory
 from data_extraction_layer.extraction import FileExtractor
-from hdfs import InsecureClient
 from datetime import datetime, timedelta
-import tempfile
-import os
+import pyarrow as pa
+import pyarrow.parquet as pq
 import time
 import pytz
 
@@ -106,10 +105,16 @@ def download_and_process_recent_files(ftp: FTP):
             print(f"An error occurred: {str(e)} ", group)
 
         ftp.cwd("../..")
+        print(merged_df)
 
     return merged_df, current_group
     
 def save_as_parquet(df, file_path):
-    df.to_parquet(file_path, index=False)
-    print(f"Saved DataFrame to {file_path}")
-
+    table = pa.Table.from_pandas(df)
+    pq.write_to_dataset(
+        table, 
+        root_path=file_path, 
+        compression='snappy',
+        version='1.0'
+    )
+    print(f"Saved partitioned DataFrame to {file_path}")

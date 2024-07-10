@@ -5,7 +5,11 @@
 > docker run -p 2021:21 -p 60000-60010:60000-60010 alpine-ftp-python
 
 #connect to ftp server
-> ftp localhost 2021 -u anonymous -P '' 
+> ftp localhost 2021 
+> -u anonymous -P '' 
+
+#recursive delelte all files 
+> find . -type f -exec rm {} \;
 
 #docker ps to check if ftp server is running and get container id
 > docker ps

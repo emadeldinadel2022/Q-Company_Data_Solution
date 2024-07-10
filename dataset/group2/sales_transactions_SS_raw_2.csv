@@ -1,4 +1,4 @@
-transaction_date,transaction_id,customer_id,customer_fname,cusomter_lname,cusomter_email,sales_agent_id,branch_id,product_id,product_name,product_category,offer_1,offer_2,offer_3,offer_4,offer_5,units,unit_price,is_online,payment_method,shipping_address
+transaction_date,transaction_id,customer_id,customer_fname,customer_lname,customer_email,sales_agent_id,branch_id,product_id,product_name,product_category,offer_1,offer_2,offer_3,offer_4,offer_5,units,unit_price,is_online,payment_method,shipping_address
 2023-10-25,trx-072037549384,85550,Emma,Wilson,emma.wilson@outlook.com)x,2,3,3,Tablet,Electronics,,,,,,7,299.99,no,Cash
 2022-5-8,trx-125208155197,85512,Olivia,Miller,olivia.miller@outlook.com|,9,5,11,TV,Electronics,,,,,,3,899.99,no,Credit Card
 2023-5-3,trx-667682345565,85512,Olivia,Miller,olivia.miller@outlook.com]x,7,2,10,Sandals,Footwear,,,,True,,3,39.99,no,Credit Card

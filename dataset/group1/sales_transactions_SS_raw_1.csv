@@ -1,4 +1,4 @@
-transaction_date,transaction_id,customer_id,customer_fname,cusomter_lname,cusomter_email,sales_agent_id,branch_id,product_id,product_name,product_category,offer_1,offer_2,offer_3,offer_4,offer_5,units,unit_price,is_online,payment_method,shipping_address
+transaction_date,transaction_id,customer_id,customer_fname,customer_lname,customer_email,sales_agent_id,branch_id,product_id,product_name,product_category,offer_1,offer_2,offer_3,offer_4,offer_5,units,unit_price,is_online,payment_method,shipping_address
 2023-5-20,trx-152546429674,85469,Alexander,Brown,"alexander.brown@gmail.com""",1,2,22,Coffee Maker,Appliances,,,,,,10,79.99,no,Cash
 2022-10-25,trx-291375327542,85512,William,Brown,william.brown@gmail.com;,3,1,24,Blender,Appliances,,,,True,,5,49.99,no,Cash
 2022-2-5,trx-312507679871,85484,John,Williams,john.williams@gmail.com*,10,3,4,Headphones,Electronics,,,,,,1,99.99,no,Credit Card
