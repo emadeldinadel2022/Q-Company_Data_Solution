@@ -98,6 +98,7 @@ def download_and_process_recent_files(ftp: FTP):
                 sales_agents.rename(columns={'sales_person_id': 'sales_agent_id'}, inplace=True)
                 merged_df = pd.merge(sales_transactions, sales_agents, on='sales_agent_id', how='left')
                 merged_df = pd.merge(merged_df, branches, on='branch_id', how='left')
+                merged_df.rename(columns={'cusomter_lname': 'customer_lname', 'cusomter_email': 'customer_email'}, inplace=True)
                 merged_df['group'] = group
                 current_group = group
 

@@ -13,10 +13,8 @@ class DataTransformer:
                  .withColumnRenamed("hire_date", "sales_agent_hire_date") \
                  .withColumnRenamed("location", "branch_location") \
                  .withColumnRenamed("establish_date", "branch_establish_date") \
-                 .withColumnRenamed("class", "branch_class") \
-                 .withColumnRenamed("cusomter_email", "customer_email") \
-                 .withColumnRenamed("cusomter_lname", "customer_lname")
-
+                 .withColumnRenamed("class", "branch_class") 
+                
     @staticmethod
     def remove_blank_columns(df: DataFrame) -> DataFrame:
         return df.select([c for c in df.columns if df.filter(col(c).isNotNull()).count() > 0])

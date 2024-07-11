@@ -2,12 +2,14 @@ from pyspark.sql import SparkSession, DataFrame
 from typing import Dict, List, Callable
 from datetime import datetime
 from utils import HDFSUtils
+from pyspark.sql.types import StructType
+from pyspark.sql.functions import col, lit
 import os
 
 # Data reading
 class DataReader:
     @staticmethod
-    def read_latest_csv(spark: SparkSession, base_path: str, num_partitions: int = 200) -> DataFrame:
+    def read_latest_csv(spark: SparkSession, base_path: str, expected_schema: StructType, num_partitions: int = 200) -> DataFrame:
         current_date = datetime.now().strftime("%Y-%m-%d")
         hdfs_path = f"{base_path}/raw_sales_transactions_{current_date}"
         latest_file = HDFSUtils.get_latest_file(spark, hdfs_path)
@@ -18,9 +20,30 @@ class DataReader:
             print(f"Processing file: {latest_file}")
             for attempt in range(max_retries):
                 try:
-                    # Read the CSV file with header and repartition
                     df = spark.read.option("header", "true").csv(latest_file)
-                    repartitioned_df = df.repartition(num_partitions)
+                    
+                    actual_fields = set(df.columns)
+                    expected_fields = set(field.name for field in expected_schema.fields)
+
+                    missing_fields = expected_fields - actual_fields
+                    new_fields = actual_fields - expected_fields
+
+                    for field in missing_fields:
+                        df = df.withColumn(field, lit(None))
+
+                    select_expr = []
+                    for field in expected_schema.fields:
+                        if field.name in actual_fields:
+                            select_expr.append(col(field.name).cast(field.dataType).alias(field.name))
+                        else:
+                            select_expr.append(lit(None).cast(field.dataType).alias(field.name))
+
+                    for field in new_fields:
+                        select_expr.append(col(field).alias(field))
+
+                    df_with_schema = df.select(select_expr)
+
+                    repartitioned_df = df_with_schema.repartition(num_partitions)
                     print(f"Successfully read CSV and partitioned to {num_partitions}")
                     return repartitioned_df
                 except Exception as e:
@@ -57,20 +80,21 @@ class DataWriter:
         # Generate timestamp
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
-        result_string = ''
-        try:
-            first_group = split_dfs['online'].select("group").filter("group is not null").first()[0]
-            result_string = str(first_group)
-        except Exception as e:
-            print(f"An error occurred: {str(e)}")
-            result_string = None            
+        group_number = str(df.select("group").filter("group is not null").first()[0])
         
-        file_name = f"{transaction_type}_transactions_{result_string}_{timestamp}"
+        
+        file_name = f"{transaction_type}_transactions_{group_number}_{timestamp}"
         group_path = os.path.join(full_path, file_name)
+        
+        schema = df.schema
 
         df.write \
+            .option("schema", schema.json()) \
             .partitionBy(partition_cols) \
             .mode("overwrite") \
             .parquet(group_path)
-
-        print(f"Written {transaction_type} transactions for group {result_string} to {group_path}")
+        
+        print(f"Written {transaction_type} transactions for group {group_number} to {group_path}")
+        
+        schema_path = os.path.join(group_path, "_schema")
+        spark.createDataFrame([], schema).limit(0).write.mode("overwrite").parquet(schema_path)
