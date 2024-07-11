@@ -3,11 +3,14 @@ certifi==2024.7.4
 charset-normalizer==3.3.2
 comm==0.2.2
 confluent-kafka==2.4.0
+cramjam==2.8.3
 debugpy==1.8.2
 decorator==5.1.1
 docopt==0.6.2
 exceptiongroup==1.2.1
 executing==2.0.1
+fastparquet==2024.5.0
+fsspec==2024.6.1
 hdfs==2.7.3
 hdfs3==0.3.1
 idna==3.7

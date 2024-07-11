@@ -22,6 +22,7 @@ class Schemas:
         StructField("units", IntegerType(), nullable=False),
         StructField("unit_price", DoubleType(), nullable=False),
         StructField("discount", FloatType(), nullable=False),
+        StructField("total_price", DoubleType(), nullable=False),
         StructField("payment_method", StringType(), nullable=False),
         StructField("sales_agent_name", StringType(), nullable=False),
         StructField("sales_agent_hire_date", DateType(), nullable=False),
@@ -43,6 +44,7 @@ class Schemas:
         StructField("units", IntegerType(), nullable=False),
         StructField("unit_price", DoubleType(), nullable=False),
         StructField("discount", FloatType(), nullable=False),
+        StructField("total_price", DoubleType(), nullable=False),
         StructField("payment_method", StringType(), nullable=False),
         StructField("shipping_street_name",  StringType(), nullable=False), 
         StructField("shipping_city",  StringType(), nullable=False),
@@ -59,3 +61,4 @@ class HDFSUtils:
             .listStatus(spark._jvm.org.apache.hadoop.fs.Path(hdfs_path))
         sorted_files = sorted(files, key=lambda f: f.getModificationTime(), reverse=True)
         return sorted_files[0].getPath().toString() if sorted_files else None
+    

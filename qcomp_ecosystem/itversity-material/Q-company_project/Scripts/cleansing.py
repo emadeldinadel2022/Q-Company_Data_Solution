@@ -37,7 +37,7 @@ class DataQualityLayer:
             DataTransformer.merge_customer_name,
             lambda df: df.withColumn("customer_email", DataTransformer.clean_email(col("customer_email"))),
             lambda df: df.withColumn("transaction_id", DataTransformer.validate_transaction_id(col("transaction_id"))),
-            lambda df: df.withColumn("unit_price", DataTransformer.validate_unit_price(col("unit_price"))),
+            DataTransformer.calculate_total_price
         ]
 
         for transform in transformations:

@@ -24,6 +24,6 @@
 > python3 file_watcher.py 
 
 #for streaming layer
-> hdfs dfs -mkdir -p /user/itversity/kafka_data
+> hdfs dfs -mkdir -p /user/itversity/customer_events
 > hdfs dfs -mkdir -p /user/itversity/checkpoints
 > hdfs dfs -chmod -R 777 /user/itversity

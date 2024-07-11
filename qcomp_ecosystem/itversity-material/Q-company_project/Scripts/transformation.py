@@ -64,11 +64,11 @@ class DataTransformer:
 
     @staticmethod
     @udf(returnType=DoubleType())
-    def validate_unit_price(price: float) -> float:
-        return abs(price) 
+    def validate_unit_price(price):
+        return price if price >= 0 else (-1 * price)
     
-    @staticmethod
-    def rearrange_columns(df):
+    @staticmethod    
+    def rearrange_columns(df: DataFrame) -> DataFrame:
         new_order = [
             'transaction_id', 'transaction_date', 'customer_id', 'customer_name', 'customer_email',
             'product_id', 'product_name', 'product_category', 'units', 'unit_price', 'discount',
@@ -77,7 +77,6 @@ class DataTransformer:
             'shipping_street_name', 'shipping_city', 'shipping_state', 'shipping_zip_code'
         ]
         return df.select(new_order)
-
 
     @staticmethod
     def convert_dates_to_date_type(df: DataFrame) -> DataFrame:
@@ -98,6 +97,10 @@ class DataTransformer:
                  .withColumn("shipping_state", col("shipping_address_split")[2]) \
                  .withColumn("shipping_zip_code", col("shipping_address_split")[3]) \
                  .drop("shipping_address", "shipping_address_split")
+    
+    @staticmethod
+    def calculate_total_price(df: DataFrame) -> DataFrame:
+        return df.withColumn("total_price", round(col("units") * col("unit_price") * (1 - col("discount")), 3))
 
     @staticmethod
     def map_shipping_state(spark: SparkSession, df: DataFrame, state_dict: Dict[str, str]) -> DataFrame:

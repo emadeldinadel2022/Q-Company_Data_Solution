@@ -109,12 +109,6 @@ def download_and_process_recent_files(ftp: FTP):
 
     return merged_df, current_group
     
-def save_as_parquet(df, file_path):
-    table = pa.Table.from_pandas(df)
-    pq.write_to_dataset(
-        table, 
-        root_path=file_path, 
-        compression='snappy',
-        version='1.0'
-    )
-    print(f"Saved partitioned DataFrame to {file_path}")
+def save_as_csv(df, file_path):
+    df.to_csv(file_path, index=False)
+    print(f"Saved DataFrame to {file_path}")
