@@ -3,13 +3,9 @@ import pandas as pd
 from ftplib import FTP
 from data_generation_layer.models import FSOFactory
 from data_extraction_layer.parsers import ParserFactory
-from data_extraction_layer.extraction import FileExtractor
 from datetime import datetime, timedelta
-import pyarrow as pa
-import pyarrow.parquet as pq
 import time
 import pytz
-
 
 def ftp_connect(max_retries=5, retry_delay=2):
     print("Waiting for FTP server to start...")
@@ -31,85 +27,80 @@ def ftp_connect(max_retries=5, retry_delay=2):
                 print("Max retries reached. Unable to connect to FTP server.")
                 raise
 
-def is_file_recent(ftp: FTP, file_path: str, cutoff_time: datetime) -> bool:
-    try:
-        mdtm = ftp.sendcmd(f"MDTM {file_path}")[4:].strip()
-        utc_time = datetime.strptime(mdtm, "%Y%m%d%H%M%S")
-        utc_time = utc_time.replace(tzinfo=pytz.UTC)  # Make the datetime object timezone-aware
+def get_file_timestamp(ftp: FTP, file_path: str) -> datetime:
+    mdtm = ftp.sendcmd(f"MDTM {file_path}")[4:].strip()
+    utc_time = datetime.strptime(mdtm, "%Y%m%d%H%M%S").replace(tzinfo=pytz.UTC)
+    local_tz = datetime.now(pytz.utc).astimezone().tzinfo
+    return utc_time.astimezone(local_tz)
 
-        # Get the local timezone
-        local_tz = datetime.now(pytz.utc).astimezone().tzinfo
+def is_file_recent(timestamp: datetime, cutoff_time: datetime) -> bool:
+    return timestamp > cutoff_time
 
-        # Convert UTC time to local time
-        created_at = utc_time.astimezone(local_tz)
-
-        # Ensure cutoff_time is timezone-aware
-        if cutoff_time.tzinfo is None:
-            cutoff_time = cutoff_time.replace(tzinfo=local_tz)
-
-        print(f"File: {file_path}, Created at: {created_at}, Cutoff: {cutoff_time}")
-            
-        return created_at > cutoff_time
+def get_recent_files(ftp: FTP, group: str, cutoff_time: datetime):
+    required_files = ['branches', 'sales_agents', 'sales_transactions']
+    group_path = f'/q_company_data/{group}'
+    ftp.cwd(group_path)
+    files = ftp.nlst()
     
-    except Exception as e:
-        print(f"Error checking file recency for {file_path}: {str(e)}")
-        return False
-def download_and_process_recent_files(ftp: FTP):
-    groups = ["group1", "group2", "group3", "group4", "group5", "group6"]
-    merged_df = pd.DataFrame()
-    cutoff_time = datetime.now() - timedelta(hours=1)
-    current_group = None
-
-    for group in groups:
-        try:
-            group_path = f'/q_company_data/{group}'
-            ftp.cwd(group_path)
-            files = ftp.nlst()
-
-            recent_files = [file for file in files if is_file_recent(ftp, group_path + '/' + file, cutoff_time)]
-            #recent_files.sort(key=lambda x: ftp.voidcmd(f"MDTM {x}"), reverse=True)
-            #recent_files = recent_files[:3]
-
-            extracted_data = {}
-            for file in recent_files:
-                path = ftp.pwd() + "/" + file
-                fso = FSOFactory.create_ftpfile(ftp, path)
-
-                # Download file to a temporary location
-                file_content = io.BytesIO()
-                ftp.retrbinary(f"RETR {file}", file_content.write)
-                file_content.seek(0)  # Reset file pointer to the beginning
-
-                # Process the file
-                parser = ParserFactory.get_parser(fso.type)
-                data = parser.parse(file_content)
-
-                # Store the extracted data
-                splited_file_name = file.split('.')[0]
-                updated_file_name = splited_file_name.split('_')[0] if 'branches' in file else '_'.join(splited_file_name.split('_')[0:2])
-                extracted_data[updated_file_name] = data
-
-            # Merge the extracted data
-            if 'branches' in extracted_data and 'sales_agents' in extracted_data and 'sales_transactions' in extracted_data:
-                branches = extracted_data['branches']
-                sales_agents = extracted_data['sales_agents']
-                sales_transactions = extracted_data['sales_transactions']
-
-                sales_agents.rename(columns={'sales_person_id': 'sales_agent_id'}, inplace=True)
-                merged_df = pd.merge(sales_transactions, sales_agents, on='sales_agent_id', how='left')
-                merged_df = pd.merge(merged_df, branches, on='branch_id', how='left')
-                merged_df.rename(columns={'cusomter_lname': 'customer_lname', 'cusomter_email': 'customer_email'}, inplace=True)
-                merged_df['group'] = group
-                current_group = group
-
-        except Exception as e:
-            print(f"An error occurred: {str(e)} ", group)
-
-        ftp.cwd("../..")
-        print(merged_df)
-
-    return merged_df, current_group
+    recent_files = {}
+    for file in files:
+        file_type = file.split('.')[-1]
+        for required_file in required_files:
+            if required_file in file:
+                timestamp = get_file_timestamp(ftp, file)
+                if is_file_recent(timestamp, cutoff_time):
+                    recent_files[required_file+"."+file_type] = (file, timestamp)
+                break
     
-def save_as_csv(df, file_path):
+    return recent_files if len(recent_files) == 3 else None
+
+def process_group(ftp: FTP, group: str, cutoff_time: datetime):
+    recent_files = get_recent_files(ftp, group, cutoff_time)
+    if not recent_files:
+        print(f"Skipping group {group}: Not all required recent files found")
+        return None, None
+
+    extracted_data = {}
+    for file_type, (file, _) in recent_files.items():
+        file_content = io.BytesIO()
+        ftp.retrbinary(f"RETR {file}", file_content.write)
+        file_content.seek(0)
+
+        ftype = file_type.split('.')[1]
+        fname = file_type.split('.')[0]
+        parser = ParserFactory.get_parser(ftype)
+        extracted_data[fname] = parser.parse(file_content)
+
+    branches = extracted_data['branches']
+    sales_agents = extracted_data['sales_agents']
+    sales_transactions = extracted_data['sales_transactions']
+
+    sales_agents.rename(columns={'sales_person_id': 'sales_agent_id'}, inplace=True)
+    merged_df = pd.merge(sales_transactions, sales_agents, on='sales_agent_id', how='left')
+    merged_df = pd.merge(merged_df, branches, on='branch_id', how='left')
+    merged_df.rename(columns={'cusomter_lname': 'customer_lname', 'cusomter_email': 'customer_email'}, inplace=True)
+    merged_df['group'] = group
+
+    return merged_df, group
+
+def download_and_process_recent_files(ftp: FTP, group: str):
+    cutoff_time = datetime.now(pytz.utc).astimezone() - timedelta(hours=1)
+    return process_group(ftp, group, cutoff_time)
+
+def save_as_csv(df: pd.DataFrame, file_path: str) -> None:
     df.to_csv(file_path, index=False)
     print(f"Saved DataFrame to {file_path}")
+
+def find_and_process_group(ftp: FTP):
+    groups = ["group1", "group2", "group3", "group4", "group5", "group6"]
+    cutoff_time = datetime.now(pytz.utc).astimezone() - timedelta(hours=1)
+
+    for group in groups:
+        print(f"Checking group: {group}")
+        merged_df, processed_group = process_group(ftp, group, cutoff_time)
+        
+        if merged_df is not None and not merged_df.empty:
+            print(f"Successfully processed group: {processed_group}")
+            return merged_df, processed_group
+
+    return None, None

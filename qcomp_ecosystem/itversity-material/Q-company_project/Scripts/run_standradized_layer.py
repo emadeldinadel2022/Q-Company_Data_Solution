@@ -9,7 +9,7 @@ def main():
     
     expected_schema = Schemas.sales_transcation_schema
     # Read data
-    raw_df = DataReader.read_latest_csv(spark, Config.RAW_BASE_PATH, expected_schema,50)    
+    raw_df = DataReader.read_latest_csv(spark, Config.RAW_BASE_PATH, expected_schema, 10)    
     
     if raw_df is None:
         return

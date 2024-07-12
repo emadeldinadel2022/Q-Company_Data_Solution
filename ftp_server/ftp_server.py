@@ -10,6 +10,8 @@ def main():
     handler.authorizer = authorizer
     handler.passive_ports = range(60000, 60010) 
 
+    handler.masquerade_address = "172.17.0.2"
+
     server = FTPServer(("0.0.0.0", 21), handler)
     server.serve_forever()
 

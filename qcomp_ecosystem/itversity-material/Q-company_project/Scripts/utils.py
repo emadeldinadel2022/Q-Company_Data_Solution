@@ -8,6 +8,7 @@ class Config:
     STANDARDIZED_BASE_PATH = "/user/itversity/q-company_standardized_layer"
     CONFORMED_NORMALIZED_BASE_PATH = "/user/itversity/q-company_conformed_layer/normalized_model"
     CONFORMED_DENORMALIZED_BASE_PATH = "/user/itversity/q-company_conformed_layer/denormalized_model"
+    DATE_DIM_PATH = "/user/itversity/q-company_conformed_layer/normalized_model/date_dim/date_dim_table"
     
 class Schemas:
     sales_transcation_schema = StructType([
