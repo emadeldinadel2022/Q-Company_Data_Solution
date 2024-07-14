@@ -7,13 +7,8 @@
 4. [Technology Stack](#technology-stack)
 5. [Data Flow](#data-flow)
 6. [Key Features](#key-features)
-7. [Getting Started](#getting-started)
-8. [Deployment](#deployment)
 9. [Maintenance and Improvement](#maintenance-and-improvement)
-10. [Contributing](#contributing)
 11. [Authors](#authors)
-12. [License](#license)
-13. [Acknowledgments](#acknowledgments)
 
 ## Project Overview
 
