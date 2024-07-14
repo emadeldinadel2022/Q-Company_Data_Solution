@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.functions import col, dayofmonth, dayofweek, dayofyear, month, year, weekofyear, quarter, regexp_replace, date_format
 from datetime import datetime, timedelta
-from config import Config
+from utils import Config
 
 def create_date_dimension(spark: SparkSession) -> None:
     start_date = datetime(2020, 1, 1)
@@ -32,3 +32,13 @@ def create_date_dimension(spark: SparkSession) -> None:
     date_df.write.mode('overwrite').parquet(output_path)
     
     print(f"Date dimension table created and saved up to {end_date.strftime('%Y-%m-%d')}")
+    
+
+def create_spark_session() -> SparkSession:
+    return SparkSession.builder \
+        .appName("date_dim") \
+        .getOrCreate()
+
+if __name__ == "__main__":
+    spark = create_spark_session()
+    create_date_dimension(spark)

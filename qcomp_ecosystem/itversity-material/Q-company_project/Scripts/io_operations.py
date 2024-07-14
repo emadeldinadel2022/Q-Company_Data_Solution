@@ -6,7 +6,6 @@ from pyspark.sql.types import StructType
 from pyspark.sql.functions import col, lit
 import os
 
-# Data reading
 class DataReader:
     @staticmethod
     def read_latest_csv(spark: SparkSession, base_path: str, expected_schema: StructType, num_partitions: int = 200) -> DataFrame:
@@ -69,7 +68,6 @@ class DataWriter:
         standardized_dir = f"standardized_sales_transaction_{current_date}"
         full_path = os.path.join(base_path, standardized_dir)
 
-        # Check if the standardized directory for the current day exists, create it if not
         fs = spark._jvm.org.apache.hadoop.fs.FileSystem.get(spark._jsc.hadoopConfiguration())
         if not fs.exists(spark._jvm.org.apache.hadoop.fs.Path(full_path)):
             fs.mkdirs(spark._jvm.org.apache.hadoop.fs.Path(full_path))
@@ -77,7 +75,6 @@ class DataWriter:
         else:
             print(f"Directory already exists: {full_path}")
 
-        # Generate timestamp
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
 
         group_number = str(df.select("group").filter("group is not null").first()[0])

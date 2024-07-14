@@ -28,7 +28,6 @@ class Watcher:
         self.observer.join()
 
 
-# Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 class Handler(FileSystemEventHandler):
@@ -44,34 +43,27 @@ class Handler(FileSystemEventHandler):
     def process(self, event):
         logging.info(f"Received created event - {event.src_path}")
         try:
-            # Get current date
             current_day = datetime.now().strftime("%Y-%m-%d")
             hdfs_directory = f"/user/itversity/q-company_raw_layer/raw_sales_transactions_{current_day}"
 
-            # Create HDFS directory if it does not exist
             if not self.hdfs_client.status(hdfs_directory, strict=False):
                 self.hdfs_client.makedirs(hdfs_directory)
                 logging.info(f"Created HDFS directory: {hdfs_directory}")
             else:
                 logging.info(f"{hdfs_directory} already exists")
 
-            # Upload file to HDFS
             file_name = os.path.basename(event.src_path)
             hdfs_path = f"{hdfs_directory}/{file_name}"
 
-            # Wait for the file to be completely written
             self._wait_for_file_completion(event.src_path)
 
-            # Use the client's upload method instead of write
             self.hdfs_client.upload(hdfs_path, event.src_path, overwrite=True)
             
-            # Verify the upload
             if self._verify_upload(event.src_path, hdfs_path):
                 logging.info(f"File {event.src_path} successfully uploaded to HDFS at {hdfs_path}")
             else:
                 raise Exception("File verification failed")
 
-            # Move file to retention area
             retention_area_path = f"/data/retention_area/{file_name}"
             shutil.move(event.src_path, retention_area_path)
             logging.info(f"File {event.src_path} moved to {retention_area_path}")

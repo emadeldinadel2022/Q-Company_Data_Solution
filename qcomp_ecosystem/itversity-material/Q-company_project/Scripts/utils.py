@@ -2,7 +2,6 @@ from pyspark.sql import SparkSession, DataFrame
 from pyspark.sql.types import *
 from datetime import datetime
 
-# Configuration
 class Config:
     RAW_BASE_PATH = "/user/itversity/q-company_raw_layer"
     STANDARDIZED_BASE_PATH = "/user/itversity/q-company_standardized_layer"
@@ -86,7 +85,6 @@ class Schemas:
         StructField("group", StringType(), nullable=False)
     ])
     
-# Utility functions
 class HDFSUtils:
     @staticmethod
     def get_latest_file(spark: SparkSession, hdfs_path: str) -> str:

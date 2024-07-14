@@ -34,6 +34,7 @@ def get_file_timestamp(ftp: FTP, file_path: str) -> datetime:
     return utc_time.astimezone(local_tz)
 
 def is_file_recent(timestamp: datetime, cutoff_time: datetime) -> bool:
+    print(timestamp, cutoff_time)
     return timestamp > cutoff_time
 
 def get_recent_files(ftp: FTP, group: str, cutoff_time: datetime):

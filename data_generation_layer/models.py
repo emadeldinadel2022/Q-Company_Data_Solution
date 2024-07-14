@@ -143,14 +143,11 @@ class FSOFactory:
             utc_time = datetime.strptime(mdtm, "%Y%m%d%H%M%S")
             utc_time = utc_time.replace(tzinfo=pytz.UTC)  # Make the datetime object timezone-aware
 
-            # Get the local timezone
             local_tz = datetime.now(pytz.utc).astimezone().tzinfo
 
-            # Convert UTC time to local time
             created_at = utc_time.astimezone(local_tz)
 
             
-            # Creating a FileSystemObject
             return File(
                 name=cls._get_file_name(path),
                 path=path,
@@ -169,17 +166,16 @@ class FSOFactory:
     @classmethod
     def create_ftpdir(cls, ftp: FTP, path: str) -> FileSystemObject:
         try:
-            # Directories may not have a size or mdtm, default values used
-            created_at = datetime.now()  # Placeholder for created_at
-            size = 0  # Placeholder for directory size
+            created_at = datetime.now()  
+            size = 0  
 
             return Directory(
                 name=os.path.basename(path),
                 path=path,
                 created_at=created_at,
-                owner='ftpuser',  # FTP server owner might not be retrievable
-                group='ftpgroup',  # FTP server group might not be retrievable
-                permissions='drwxr-xr-x',  # Default permissions for simplicity
+                owner='ftpuser',  
+                group='ftpgroup',  
+                permissions='drwxr-xr-x',  
                 size=size
             )
         except Exception as e:
